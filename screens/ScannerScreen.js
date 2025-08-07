@@ -1,18 +1,25 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useState } from 'react';
 import { Button, StyleSheet, Text, TouchableOpacity, View, Dimensions } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 export function ScannerScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState('back');
   const [hit, setHit] = useState(null);
 
+  const navigation = useNavigation();
+
+
+
+
   const fetchData = async(barcodeNum)=>{
     const res =  await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcodeNum}.json`)
     const json =  await  res.json()
     const data =  json.product
     const {product_name} = data
-    console.log(product_name)
+    return data
+    
     
   }
 
@@ -26,12 +33,17 @@ export function ScannerScreen() {
     );
   }
 
-  const onScan =async({ type, data }) => {
-    if (!data) return; // Ignore empty reads (sometimes happens on iOS for EAN-13)
-    setHit({ type, data });
-    console.log('Scanned', type, data);
-    await fetchData(data)
-  };
+  const onScan = async ({ type, data }) => {
+  if (!data) return;
+  setHit({ type, data });
+  console.log('Scanned', type, data);
+  try {
+    const product = await fetchData(data);
+    navigation.navigate('Results', { product });
+  } catch (err) {
+    console.error("Failed to fetch product:", err);
+  }
+};
 
   return (
     <View style={styles.container}>
@@ -55,7 +67,7 @@ export function ScannerScreen() {
 
         {/* Flip button */}
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.button} onPress={() => setFacing(facing === 'back' ? 'front' : 'back')}>
+          <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Results',{data:''})}>
             <Text style={styles.text}>Flip</Text>
           </TouchableOpacity>
         </View>
